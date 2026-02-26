@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gan-Live | אפליקציית גן חכמה</title>
+    <style>
+        :root {
+            --primary: #4a90e2;
+            --secondary: #f5a623;
+            --bg: #f0f2f5;
+            --white: #ffffff;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: var(--white); border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        
+        /* Headings */
+        .header { background: var(--primary); color: white; padding: 15px; text-align: center; font-size: 1.2rem; }
+        .nav-tabs { display: flex; background: #ddd; }
+        .nav-tabs button { flex: 1; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
+        .nav-tabs button.active { background: var(--white); color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        /* Interface Sections */
+        .view-section { padding: 20px; display: none; }
+        .view-section.active { display: block; }
+
+        /* Teacher Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-action { background: #f9f9f9; border: 2px solid #eee; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .btn-action:active { transform: scale(0.95); background: #eef; }
+        .btn-action i { font-size: 2rem; display: block; margin-bottom: 5px; }
+
+        /* Parent Dashboard */
+        .insight-card { background: #fff9e6; border-right: 5px solid var(--secondary); padding: 10px; margin-bottom: 15px; border-radius: 5px; }
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .status-badge { background: var(--success); color: white; padding: 3px 8px; border-radius: 10px; font-size: 0.8rem; }
+        
+        .inventory-low { color: var(--danger); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">Gan-Live 👶</div>
+    
+    <div class="nav-tabs">
+        <button id="tabTeacher" class="active" onclick="switchView('teacher')">ממשק גננת</button>
+        <button id="tabParent" onclick="switchView('parent')">דאשבורד הורה</button>
+    </div>
+
+    <div id="teacherView" class="view-section active">
+        <h3>דיווח מהיר - אריאל</h3>
+        <div class="grid">
+            <div class="btn-action" onclick="logAction('ארוחה', '🥣 מרק עוף - טוב')"><i>🥣</i>ארוחה</div>
+            <div class="btn-action" onclick="toggleSleep()"><i>😴</i><span id="sleepBtnText">התחל שינה</span></div>
+            <div class="btn-action" onclick="logAction('החלפה', '💧 פיפי')"><i>💧</i>החלפה</div>
+            <div class="btn-action" onclick="requestInventory()"><i>⚠️</i>חסר ציוד</div>
+        </div>
+        <p id="teacherMsg" style="color: var(--primary); margin-top: 15px;"></p>
+    </div>
+
+    <div id="parentView" class="view-section">
+        <div class="insight-card">
+            💡 <strong>תובנה יומית:</strong> <span id="insightText">היום עובר בצורה תקינה.</span>
+        </div>
+        
+        <div class="stat-row">
+            <span>סטטוס נוכחי:</span>
+            <span id="currentStatus" class="status-badge">בפעילות</span>
+        </div>
+        <div class="stat-row">
+            <span>ארוחה אחרונה:</span>
+            <span id="lastMeal">-</span>
+        </div>
+        <div class="stat-row">
+            <span>מלאי חיתולים:</span>
+            <span id="diaperCount" class="">12 יחידות</span>
+        </div>
+
+        <h4>ציר זמן (Timeline)</h4>
+        <ul id="timeline" style="list-style: none; padding: 0; font-size: 0.9rem;">
+            </ul>
+    </div>
+</div>
+
+<script>
+    let isSleeping = false;
+    let diapers = 12;
+
+    function switchView(view) {
+        document.getElementById('teacherView').classList.toggle('active', view === 'teacher');
+        document.getElementById('parentView').classList.toggle('active', view === 'parent');
+        document.getElementById('tabTeacher').classList.toggle('active', view === 'teacher');
+        document.getElementById('tabParent').classList.toggle('active', view === 'parent');
+    }
+
+    function logAction(type, detail) {
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        // עדכון ממשק גננת
+        document.getElementById('teacherMsg').innerText = `עודכן: ${type} ב-${time}`;
+
+        // עדכון דאשבורד הורה
+        const timeline = document.getElementById('timeline');
+        const item = document.createElement('li');
+        item.innerHTML = `<strong>${time}</strong> - ${detail}`;
+        timeline.prepend(item);
+
+        if(type === 'ארוחה') {
+            document.getElementById('lastMeal').innerText = detail;
+        }
+    }
+
+    function toggleSleep() {
+        isSleeping = !isSleeping;
+        const btnText = document.getElementById('sleepBtnText');
+        const statusBadge = document.getElementById('currentStatus');
+        
+        if(isSleeping) {
+            btnText.innerText = "סיים שינה";
+            statusBadge.innerText = "ישן 😴";
+            statusBadge.style.background = "#9b59b6";
+            logAction('שינה', 'הלך לישון');
+        } else {
+            btnText.innerText = "התחל שינה";
+            statusBadge.innerText = "בפעילות";
+            statusBadge.style.background = "#2ecc71";
+            logAction('שינה', 'התעורר מהשינה');
+        }
+    }
+
+    function requestInventory() {
+        diapers -= 5;
+        document.getElementById('diaperCount').innerText = `${diapers} יחידות`;
+        if(diapers <= 5) {
+            document.getElementById('diaperCount').classList.add('inventory-low');
+            document.getElementById('insightText').innerText = "שים לב: המלאי עומד להיגמר, נא להביא חיתולים למחר!";
+        }
+        logAction('מלאי', 'נשלחה בקשה להשלמת ציוד');
+    }
+</script>
+
+</body>
+</html>
